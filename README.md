@@ -55,8 +55,6 @@ yarn build
 
 ## 如何贡献
 
-非常欢迎你的加入！[提一个 Issue](https://github.com/jekip/naive-ui-admin/issues) 或者提交一个 Pull Request。
-
 **Pull Request:**
 
 1. Fork 代码!
