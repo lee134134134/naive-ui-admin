@@ -198,7 +198,7 @@
   });
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .upload {
     width: 100%;
     overflow: hidden;
@@ -298,6 +298,7 @@
         cursor: pointer;
         background: #fafafa;
         color: #666;
+        text-align: center;
 
         .upload-title {
           color: #666;

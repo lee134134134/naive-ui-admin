@@ -40,11 +40,7 @@
                 @contextmenu="handleContextMenu($event, element)"
               >
                 <span>{{ element.meta.title }}</span>
-                <n-icon
-                  size="14"
-                  @click.stop="closeTabItem(element)"
-                  v-if="element.path !== baseHome"
-                >
+                <n-icon size="14" @click.stop="closeTabItem(element)" v-if="!element.meta.affix">
                   <CloseOutlined />
                 </n-icon>
               </div>
@@ -115,6 +111,8 @@
   import elementResizeDetectorMaker from 'element-resize-detector';
   import { useDesignSetting } from '@/hooks/setting/useDesignSetting';
   import { useProjectSettingStore } from '@/store/modules/projectSetting';
+  import { useThemeVars } from 'naive-ui';
+  import { useGo } from '@/hooks/web/usePage';
 
   export default defineComponent({
     name: 'TabsView',
@@ -132,7 +130,7 @@
     },
     setup(props) {
       const { getDarkTheme, getAppTheme } = useDesignSetting();
-      const { getNavMode, getHeaderSetting, getMenuSetting, getMultiTabsSetting } =
+      const { getNavMode, getHeaderSetting, getMenuSetting, getMultiTabsSetting, getIsMobile } =
         useProjectSetting();
       const settingStore = useProjectSettingStore();
 
@@ -144,6 +142,17 @@
       const navScroll: any = ref(null);
       const navWrap: any = ref(null);
       const isCurrent = ref(false);
+      const go = useGo();
+
+      const themeVars = useThemeVars();
+
+      const getCardColor = computed(() => {
+        return themeVars.value.cardColor;
+      });
+
+      const getBaseColor = computed(() => {
+        return themeVars.value.textColor1;
+      });
 
       const state = reactive({
         activeKey: route.fullPath,
@@ -181,6 +190,13 @@
             : collapsed
             ? `${minMenuWidth}px`
             : `${menuWidth}px`;
+
+        if (getIsMobile.value) {
+          return {
+            left: '0px',
+            width: '100%',
+          };
+        }
         return {
           left: lenNum,
           width: `calc(100% - ${!fixed ? '0px' : lenNum})`,
@@ -217,17 +233,27 @@
         ];
       });
 
-      let routes: RouteItem[] = [];
-
+      let cacheRoutes: RouteItem[] = [];
+      const simpleRoute = getSimpleRoute(route);
       try {
         const routesStr = storage.get(TABS_ROUTES) as string | null | undefined;
-        routes = routesStr ? JSON.parse(routesStr) : [getSimpleRoute(route)];
+        cacheRoutes = routesStr ? JSON.parse(routesStr) : [simpleRoute];
       } catch (e) {
-        routes = [getSimpleRoute(route)];
+        cacheRoutes = [simpleRoute];
       }
 
+      // 将最新的路由信息同步到 localStorage 中
+      const routes = router.getRoutes();
+      cacheRoutes.forEach((cacheRoute) => {
+        const route = routes.find((route) => route.path === cacheRoute.path);
+        if (route) {
+          cacheRoute.meta = route.meta || cacheRoute.meta;
+          cacheRoute.name = (route.name || cacheRoute.name) as string;
+        }
+      });
+
       // 初始化标签页
-      tabsViewStore.initTabs(routes);
+      tabsViewStore.initTabs(cacheRoutes);
 
       //监听滚动条
       function onScroll(e) {
@@ -237,8 +263,8 @@
           window.pageYOffset ||
           document.body.scrollTop; // 滚动条偏移量
         state.isMultiHeaderFixed = !!(
-          !getHeaderSetting.fixed &&
-          getMultiTabsSetting.fixed &&
+          !getHeaderSetting.value.fixed &&
+          getMultiTabsSetting.value.fixed &&
           scrollTop >= 64
         );
       }
@@ -335,7 +361,6 @@
 
       // 关闭全部
       const closeAll = () => {
-        localStorage.removeItem('routes');
         tabsViewStore.closeAllTabs();
         router.replace(PageEnum.BASE_HOME);
         updateNavScroll();
@@ -452,7 +477,7 @@
         const { fullPath } = e;
         if (fullPath === route.fullPath) return;
         state.activeKey = fullPath;
-        router.push({ path: fullPath });
+        go(e, true);
       }
 
       //删除tab
@@ -478,7 +503,6 @@
         navScroll,
         route,
         tabsList,
-        baseHome: PageEnum.BASE_HOME_REDIRECT,
         goPage,
         closeTabItem,
         closeLeft,
@@ -495,6 +519,8 @@
         onClickOutside,
         getDarkTheme,
         getAppTheme,
+        getCardColor,
+        getBaseColor,
       };
     },
   });
@@ -555,8 +581,8 @@
           overflow: hidden;
 
           &-item {
-            background: var(--color);
-            color: var(--text-color);
+            background: v-bind(getCardColor);
+            color: v-bind(getBaseColor);
             height: 32px;
             padding: 6px 16px 4px;
             border-radius: 3px;

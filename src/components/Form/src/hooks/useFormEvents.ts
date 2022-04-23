@@ -32,7 +32,7 @@ export function useFormEvents({
   }
 
   // 提交
-  async function handleSubmit(e?: Event): Promise<any> {
+  async function handleSubmit(e?: Event): Promise<void> {
     e && e.preventDefault();
     loadingSub.value = true;
     const { submitFunc } = unref(getProps);

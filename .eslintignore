@@ -12,3 +12,6 @@ dist
 .local
 /bin
 Dockerfile
+components.d.ts
+components.d.ts
+pnpm-lock.yaml
